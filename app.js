@@ -82,8 +82,8 @@ addActionFunction({
     
     // Ugly thing #1 -- is the _parentComponent hack the only way to get the
     // parameters that I want here?
-    
-    const props = a.router._parentComponent.props
+    //const props = a.router._parentComponent.props
+    const props = a.current.attributes
     let fetchParams = _.cloneDeep(store.getState().fetchParams)
     fetchParams.start = props.start || "0"
     fetchParams.length = props.length || "5"
@@ -145,11 +145,21 @@ class Home extends Component {
   componentWillUpdate() {
     console.log('home update')
   }
+  shouldComponentUpdate(state) {
+    console.log('check')
+  }
   componentDidMount() {
     console.log('home mounted')
     const start = this.props.fetchParams.start
     const length = this.props.fetchParams.length
-    this.props.getData(this.props)
+    
+    // We don't want this here anymore, because componentDidMount does not
+    // execute when the route changes. The component stays the same on page.
+    // We need to re-fetch the data within routeAction. If we leave this here,
+    // then there will be TWO XHR fetches for the same data. It's redundant.
+    // So, we rely on ONLY the fetch in routeAction to refresh the data.
+    
+    //this.props.getData(this.props)
   }
   render() {
     
@@ -162,7 +172,9 @@ class Home extends Component {
         <div>
           <h2>Home</h2>
           Start <input type='text' name='start' value=${start} onkeyup=${this.updateFetchParams} />
+          <br />
           Length <input type='text' name='length' value=${length} onkeyup=${this.updateFetchParams} />
+          <br />
           <button onclick=${this.go}>Go</button>
           <hr />
           ${data}
