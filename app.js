@@ -86,20 +86,20 @@ class Home extends Component {
     
     this.state.start = ''
     this.state.length = ''
+    this.state.fetchForm = { start: '', length: '' }
     this.state.fetchData = { values: [] }
     
   }
   go(event) {
     event.preventDefault()
-    const start = this.state.start
-    const length = this.state.length
-    //this.getData(start, length)
+    const start = this.state.fetchForm.start
+    const length = this.state.fetchForm.length
     route(this.props.main.baseUrl + "/home/?start="+start+"&length="+length)
   }
   updateFetchParams(event) {
-    let update = {}
-    update[event.target.name] = event.target.value
-    this.setState(update)
+    let fetchForm = _.cloneDeep(this.state.fetchForm)
+    fetchForm[event.target.name] = event.target.value
+    this.setState({fetchForm})
   }
   async getData(start, length) {
     const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
@@ -122,21 +122,36 @@ class Home extends Component {
     };
   }
   componentDidUpdate(prevProps, prevState) {
+    console.log('componentDidUpdate')
     const { start, length } = this.state; // new values
-    if (start !== prevState.start || length !== prevState.length) {
+    
+    const uninitializedForm = { start: '', length: '' }
+    
+    const formUninitialized = _.isEqual(prevState.fetchForm, uninitializedForm)
+    
+    const paramsChanged = !_.isEqual(
+      {start: prevState.start, length: prevState.length}, 
+      {start: this.state.start, length: this.state.length}
+    )
+    
+    if (formUninitialized || paramsChanged) {
       // they changed, re-fetch the data:
+      let fetchForm = _.cloneDeep(this.state.fetchForm)
+      fetchForm.start = start
+      fetchForm.length = length
+      this.setState({fetchForm})
       this.getData(start, length);
     }
   }
   async componentDidMount() {
-    const start = this.props.start || "0"
-    const length = this.props.length || "5"
+    const start = this.state.start
+    const length = this.state.length
     this.getData(start, length)
   }
   render(props, state) {
     
-    const start = state.start
-    const length = state.length
+    const start = this.state.fetchForm.start
+    const length = this.state.fetchForm.length
     
     const data = html`<div>${state.fetchData.values.join(' ')}</div>`
     
