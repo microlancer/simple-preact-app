@@ -140,7 +140,14 @@ class Home extends Component {
   }
   static connect() {
     return connect(
-      "main,fetchParams,fetchData",
+      // (storeState, newProps) => componentProps
+      ({ main, fetchParams, fetchData }, { start, length }) => {
+        // copy start and length from the URL into state (without re-rendering!):
+        Object.assign(fetchParams, { start, length });
+
+        // same as the old "main,fetchParams,fetchData":
+        return { main, fetchParams, fetchData };
+      },
       actions
     )(
       ({ main, fetchParams, fetchData }) => {
