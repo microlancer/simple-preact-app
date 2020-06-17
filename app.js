@@ -67,15 +67,15 @@ class Menu extends Component {
 
 addConnection('Menu', Menu.connect)
 
-addInitialState({
-  fetchParams: {
-    start: "0",
-    length: "5"
-  },
-  fetchData: {
-    values: []
-  }
-})
+//addInitialState({
+//  fetchParams: {
+//    start: "",
+//    length: ""
+//  },
+//  fetchData: {
+//    values: []
+//  }
+//})
 
 class Home extends Component {
   constructor(props) {
@@ -84,21 +84,22 @@ class Home extends Component {
     this.updateFetchParams = this.updateFetchParams.bind(this)
     this.getData = this.getData.bind(this)
     
-    // Set store based on query parameters
-    this.props.fetchParams.start = props.start != undefined ? props.start : "0"
-    this.props.fetchParams.length = props.length != undefined ? props.length : "5"
+    this.state.start = ''
+    this.state.length = ''
+    this.state.fetchData = { values: [] }
+    
   }
   go(event) {
     event.preventDefault()
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
-    this.getData(start, length)
+    const start = this.state.start
+    const length = this.state.length
+    //this.getData(start, length)
+    route(this.props.main.baseUrl + "/home/?start="+start+"&length="+length)
   }
   updateFetchParams(event) {
-    let fetchParams = _.cloneDeep(store.getState().fetchParams)
-    fetchParams[event.target.name] = event.target.value
-    console.log(fetchParams)
-    store.setState({fetchParams})
+    let update = {}
+    update[event.target.name] = event.target.value
+    this.setState(update)
   }
   async getData(start, length) {
     const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
@@ -109,27 +110,39 @@ class Home extends Component {
     
     const body = await response.json()
     
-    let fetchData = _.cloneDeep(store.getState().fetchData)
+    let fetchData = Object.assign({}, this.state.fetchData)
     fetchData.values = body
     
-    store.setState({fetchData})
+    this.setState({fetchData})
   }
-  componentDidMount() {
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
+  static getDerivedStateFromProps(props) {
+    return {
+      start: props.start || '0',
+      length: props.length || '5'
+    };
+  }
+  componentDidUpdate(prevProps, prevState) {
+    const { start, length } = this.state; // new values
+    if (start !== prevState.start || length !== prevState.length) {
+      // they changed, re-fetch the data:
+      this.getData(start, length);
+    }
+  }
+  async componentDidMount() {
+    const start = this.props.start || "0"
+    const length = this.props.length || "5"
     this.getData(start, length)
   }
-  render() {
+  render(props, state) {
     
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
+    const start = state.start
+    const length = state.length
     
-    const data = html`<div>${this.props.fetchData.values.join(' ')}</div>`
+    const data = html`<div>${state.fetchData.values.join(' ')}</div>`
     
     return html`
         <div>
           <h2>Home</h2>
-          
           Start <input type='text' name='start' value=${start} onkeyup=${this.updateFetchParams} />
           Length <input type='text' name='length' value=${length} onkeyup=${this.updateFetchParams} />
           <button onclick=${this.go}>Go</button>
@@ -141,28 +154,25 @@ class Home extends Component {
   static connect() {
     return connect(
       // (storeState, newProps) => componentProps
-      ({ main, fetchParams, fetchData }, { start, length }) => {
+      ({ main }, { start, length }) => {
         // copy start and length from the URL into state (without re-rendering!):
         
-        start = start || "0"
-        length = length || "5"
-        
-        Object.assign(fetchParams, { start, length });
+        //start = start || "0"
+        //length = length || "5"
+        //Object.assign(fetchParams, { start, length });
 
         // same as the old "main,fetchParams,fetchData":
-        return { main, fetchParams, fetchData };
+        return { main, start, length };
       },
       actions
     )(
-      ({ main, fetchParams, fetchData }) => {
+      ({ main }) => {
         // Router must be wrapped here extra, otherwise props.start and props.length
         // will not be set from the URL query parameters.
         return html`
           <${Router}>
             <${Home}
               main=${main}
-              fetchParams=${fetchParams}
-              fetchData=${fetchData}
               path=${main.baseUrl + "/home"}
             />
           <//>
