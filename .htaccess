@@ -1,0 +1,33 @@
+<filesMatch ".(ico|woff2|png|ttf|mp3)$">
+    Header set Cache-Control "max-age=31536000, public"
+</filesMatch>
+
+#Header set Access-Control-Allow-Origin "http://localhost:8080"
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /simple-preact-app/
+
+
+    #RewriteRule ^beta(.*)$ index-beta.php?q=$1 [L,QSA]
+
+    RewriteRule ^api/fonts/(.*)$ media/css/fonts/$1 [L,QSA]
+
+    RewriteRule ^api/webfonts/(.*)$ media/css/webfonts/$1 [L,QSA]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond $1 !^(index\.php|beta|media|favicon.ico|simple-preact-app|manifest.json|service-worker.js)
+    RewriteRule ^(.*)$ index.php?q=$1 [L,QSA]
+
+    #RewriteRule ^(api/events/.*)$ index.php?q=$1 [E=no-gzip:1]
+
+</IfModule>
+
+#SetEnvIfNoCase Request_URI ^api/events/get$ no-gzip dont-vary
+
+<IfModule mod_deflate.c>
+    <filesMatch "\.(js|css|html|php|json|ico)$">
+        SetOutputFilter DEFLATE
+    </filesMatch>
+</IfModule>
