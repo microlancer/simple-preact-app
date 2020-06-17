@@ -70,7 +70,7 @@ addConnection('Menu', Menu.connect)
 addInitialState({
   fetchParams: {
     start: "0",
-    length: "5"
+    length: "15"
   },
   fetchData: {
     values: []
@@ -121,7 +121,7 @@ class Home extends Component {
     
     // Set store based on query parameters
     this.props.fetchParams.start = props.start != undefined ? props.start : "0"
-    this.props.fetchParams.length = props.length != undefined ? props.length : "5"
+    this.props.fetchParams.length = props.length != undefined ? props.length : "45"
   }
   go(event) {
     event.preventDefault()
@@ -148,19 +148,17 @@ class Home extends Component {
   shouldComponentUpdate(state) {
     console.log('check')
   }
-  componentDidMount() {
+  // We don't want this here anymore, because componentDidMount does not
+  // execute when the route changes. The component stays the same on page.
+  // We need to re-fetch the data within routeAction. If we leave this here,
+  // then there will be TWO XHR fetches for the same data. It's redundant.
+  // So, we rely on ONLY the fetch in routeAction to refresh the data.
+  /*componentDidMount() {
     console.log('home mounted')
     const start = this.props.fetchParams.start
     const length = this.props.fetchParams.length
-    
-    // We don't want this here anymore, because componentDidMount does not
-    // execute when the route changes. The component stays the same on page.
-    // We need to re-fetch the data within routeAction. If we leave this here,
-    // then there will be TWO XHR fetches for the same data. It's redundant.
-    // So, we rely on ONLY the fetch in routeAction to refresh the data.
-    
-    //this.props.getData(this.props)
-  }
+    this.props.getData(this.props)
+  }*/
   render() {
     
     const start = this.props.fetchParams.start
