@@ -149,7 +149,7 @@ class Home extends Component {
     console.log('home mounted')
     const start = this.props.fetchParams.start
     const length = this.props.fetchParams.length
-    this.props.getData(this.props, start, length)
+    this.props.getData(this.props)
   }
   render() {
     
