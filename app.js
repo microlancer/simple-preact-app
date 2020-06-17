@@ -77,31 +77,28 @@ addInitialState({
   }
 })
 
-class Home extends Component {
-  constructor(props) {
-    super(props)
-    this.go = this.go.bind(this)
-    this.updateFetchParams = this.updateFetchParams.bind(this)
-    this.getData = this.getData.bind(this)
+addActionFunction({
+  routeAction: async (state, a) => {
     
-    // Set store based on query parameters
-    this.props.fetchParams.start = props.start != undefined ? props.start : "0"
-    this.props.fetchParams.length = props.length != undefined ? props.length : "5"
-  }
-  go(event) {
-    event.preventDefault()
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
-    this.getData(start, length)
-  }
-  updateFetchParams(event) {
+    // Ugly thing #1 -- is the _parentComponent hack the only way to get the
+    // parameters that I want here?
+    
+    const props = a.router._parentComponent.props
     let fetchParams = _.cloneDeep(store.getState().fetchParams)
-    fetchParams[event.target.name] = event.target.value
-    console.log(fetchParams)
-    store.setState({fetchParams})
-  }
-  async getData(start, length) {
-    const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
+    fetchParams.start = props.start || "0"
+    fetchParams.length = props.length || "5"
+    await store.setState({fetchParams})
+    
+    // Ugly thing #2 -- is there a better way to call the getData function?
+    
+    await actionFunctions.getData({main: state.main, fetchParams})
+  },
+  async getData(state) {
+    
+    start = state.fetchParams.start
+    length = state.fetchParams.length
+    
+    const response = await fetch(state.main.baseUrl + "/data.php?start="+start+"&length="+length, {
       method: 'GET',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' }
@@ -114,10 +111,45 @@ class Home extends Component {
     
     store.setState({fetchData})
   }
-  componentDidMount() {
+})
+
+class Home extends Component {
+  constructor(props) {
+    super(props)
+    this.go = this.go.bind(this)
+    this.updateFetchParams = this.updateFetchParams.bind(this)
+    
+    // Set store based on query parameters
+    this.props.fetchParams.start = props.start != undefined ? props.start : "0"
+    this.props.fetchParams.length = props.length != undefined ? props.length : "5"
+  }
+  go(event) {
+    event.preventDefault()
     const start = this.props.fetchParams.start
     const length = this.props.fetchParams.length
-    this.getData(start, length)
+    // Unless route is called, the data being out-of-sync with the parameters
+    // will cause an issue, where clicking a shortcut that matches the existing
+    // parameters will NOT cause the page to load with the shortcut even if
+    // the form data is different. This is because the router seems to ignore
+    // requests to the same page. By calling "route" here, we force the URL
+    // to match the form data. Thus, clicking a shortcut that doesn't match
+    // will always load, rather than erroneously ignoring the route change.
+    route(this.props.main.baseUrl + "/home?start=" + start + "&length=" + length)
+  }
+  updateFetchParams(event) {
+    let fetchParams = _.cloneDeep(store.getState().fetchParams)
+    fetchParams[event.target.name] = event.target.value
+    console.log(fetchParams)
+    store.setState({fetchParams})
+  }
+  componentWillUpdate() {
+    console.log('home update')
+  }
+  componentDidMount() {
+    console.log('home mounted')
+    const start = this.props.fetchParams.start
+    const length = this.props.fetchParams.length
+    this.props.getData(this.props, start, length)
   }
   render() {
     
@@ -129,7 +161,6 @@ class Home extends Component {
     return html`
         <div>
           <h2>Home</h2>
-          
           Start <input type='text' name='start' value=${start} onkeyup=${this.updateFetchParams} />
           Length <input type='text' name='length' value=${length} onkeyup=${this.updateFetchParams} />
           <button onclick=${this.go}>Go</button>
@@ -143,15 +174,19 @@ class Home extends Component {
       "main,fetchParams,fetchData",
       actions
     )(
-      ({ main, fetchParams, fetchData }) => {
+      ({ main, fetchParams, fetchData, routeAction, getData }) => {
         // Router must be wrapped here extra, otherwise props.start and props.length
         // will not be set from the URL query parameters.
+        // I was not able to move routeAction into the parent render() but 
+        // perhaps there is a way to do that if I include the path.
         return html`
-          <${Router}>
+          <${Router} onChange=${routeAction}>
             <${Home}
               main=${main}
               fetchParams=${fetchParams}
               fetchData=${fetchData}
+              getData=${getData}
+              routeAction=${routeAction}
               path=${main.baseUrl + "/home"}
             />
           <//>
