@@ -143,6 +143,10 @@ class Home extends Component {
       // (storeState, newProps) => componentProps
       ({ main, fetchParams, fetchData }, { start, length }) => {
         // copy start and length from the URL into state (without re-rendering!):
+        
+        start = start || "0"
+        length = length || "5"
+        
         Object.assign(fetchParams, { start, length });
 
         // same as the old "main,fetchParams,fetchData":
