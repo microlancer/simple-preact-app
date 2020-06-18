@@ -79,6 +79,7 @@ addConnection('Menu', Menu.connect)
 
 class Home extends Component {
   constructor(props) {
+    console.log('constructor')
     super(props)
     this.go = this.go.bind(this)
     this.updateFetchParams = this.updateFetchParams.bind(this)
@@ -91,17 +92,20 @@ class Home extends Component {
     
   }
   go(event) {
+    console.log('go')
     event.preventDefault()
     const start = this.state.fetchForm.start
     const length = this.state.fetchForm.length
     route(this.props.main.baseUrl + "/home/?start="+start+"&length="+length)
   }
   updateFetchParams(event) {
+    console.log('updateFetchParams')
     let fetchForm = _.cloneDeep(this.state.fetchForm)
     fetchForm[event.target.name] = event.target.value
     this.setState({fetchForm})
   }
   async getData(start, length) {
+    console.log('getData')
     const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
       method: 'GET',
       credentials: 'same-origin',
@@ -116,6 +120,7 @@ class Home extends Component {
     this.setState({fetchData})
   }
   static getDerivedStateFromProps(props) {
+    console.log('getDerivedStateFromProps')
     return {
       start: props.start || '0',
       length: props.length || '5'
@@ -125,36 +130,31 @@ class Home extends Component {
     console.log('componentDidUpdate')
     const { start, length } = this.state; // new values
     
-    const uninitializedForm = { start: '', length: '' }
-    
-    const formUninitialized = _.isEqual(prevState.fetchForm, uninitializedForm)
-    
-    const paramsChanged = !_.isEqual(
+    // When route() is called, if the parameters have changed let's remount.
+    const queryParamsChanged = !_.isEqual(
       {start: prevState.start, length: prevState.length}, 
       {start: this.state.start, length: this.state.length}
     )
     
-    if (formUninitialized || paramsChanged) {
-      // they changed, re-fetch the data:
-      let fetchForm = _.cloneDeep(this.state.fetchForm)
-      fetchForm.start = start
-      fetchForm.length = length
-      this.setState({fetchForm})
-      this.getData(start, length);
+    if (queryParamsChanged) {
+      // Query params have changed, so treat it like we just mounted.
+      this.componentDidMount()
     }
   }
-  async componentDidMount() {
+  componentDidMount() {
+    console.log('componentDidMount')
     const start = this.state.start
     const length = this.state.length
+    let fetchForm = _.cloneDeep(this.state.fetchForm)
+    fetchForm.start = start
+    fetchForm.length = length
+    this.setState({fetchForm})
     this.getData(start, length)
   }
   render(props, state) {
-    
-    const start = this.state.fetchForm.start
-    const length = this.state.fetchForm.length
-    
+    console.log('render')
+    const { start, length } = this.state.fetchForm
     const data = html`<div>${state.fetchData.values.join(' ')}</div>`
-    
     return html`
         <div>
           <h2>Home</h2>
@@ -167,23 +167,15 @@ class Home extends Component {
       `
   }
   static connect() {
-    return connect(
-      // (storeState, newProps) => componentProps
-      ({ main }, { start, length }) => {
-        // copy start and length from the URL into state (without re-rendering!):
-        
-        //start = start || "0"
-        //length = length || "5"
-        //Object.assign(fetchParams, { start, length });
-
-        // same as the old "main,fetchParams,fetchData":
-        return { main, start, length };
-      },
-      actions
-    )(
+      console.log('connect')
+      return connect(
+        "main",
+        actions
+      )(
       ({ main }) => {
         // Router must be wrapped here extra, otherwise props.start and props.length
         // will not be set from the URL query parameters.
+        console.log('connect.render')
         return html`
           <${Router}>
             <${Home}
