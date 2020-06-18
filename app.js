@@ -85,8 +85,7 @@ class Home extends Component {
     this.updateFetchParams = this.updateFetchParams.bind(this)
     this.getData = this.getData.bind(this)
     
-    this.state.start = ''
-    this.state.length = ''
+    this.state.query = {start: '', length: ''}
     this.state.fetchForm = { start: '', length: '' }
     this.state.fetchData = { values: [] }
     
@@ -104,38 +103,32 @@ class Home extends Component {
     fetchForm[event.target.name] = event.target.value
     this.setState({fetchForm})
   }
-  async getData(start, length) {
+  async getData() {
     console.log('getData')
+    const { start, length } = this.state.fetchForm
     const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
       method: 'GET',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' }
     });
-    
     const body = await response.json()
-    
     let fetchData = Object.assign({}, this.state.fetchData)
     fetchData.values = body
-    
     this.setState({fetchData})
   }
   static getDerivedStateFromProps(props) {
     console.log('getDerivedStateFromProps')
     return {
-      start: props.start || '0',
-      length: props.length || '5'
+      query: { 
+        start: props.start || '0',
+        length: props.length || '5'
+      }
     };
   }
   componentDidUpdate(prevProps, prevState) {
     console.log('componentDidUpdate')
-    const { start, length } = this.state; // new values
-    
     // When route() is called, if the parameters have changed let's remount.
-    const queryParamsChanged = !_.isEqual(
-      {start: prevState.start, length: prevState.length}, 
-      {start: this.state.start, length: this.state.length}
-    )
-    
+    const queryParamsChanged = !_.isEqual(prevState.query, this.state.query);    
     if (queryParamsChanged) {
       // Query params have changed, so treat it like we just mounted.
       this.componentDidMount()
@@ -143,13 +136,10 @@ class Home extends Component {
   }
   componentDidMount() {
     console.log('componentDidMount')
-    const start = this.state.start
-    const length = this.state.length
-    let fetchForm = _.cloneDeep(this.state.fetchForm)
-    fetchForm.start = start
-    fetchForm.length = length
+    const { start, length } = this.state.query
+    let fetchForm = Object.assign({}, this.state.query)
     this.setState({fetchForm})
-    this.getData(start, length)
+    this.getData()
   }
   render(props, state) {
     console.log('render')
