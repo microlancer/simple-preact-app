@@ -67,40 +67,45 @@ class Menu extends Component {
 
 addConnection('Menu', Menu.connect)
 
-addInitialState({
-  fetchParams: {
-    start: "0",
-    length: "5"
-  },
-  fetchData: {
-    values: []
-  }
-})
+//addInitialState({
+//  fetchParams: {
+//    start: "",
+//    length: ""
+//  },
+//  fetchData: {
+//    values: []
+//  }
+//})
 
 class Home extends Component {
   constructor(props) {
+    console.log('constructor')
     super(props)
     this.go = this.go.bind(this)
     this.updateFetchParams = this.updateFetchParams.bind(this)
     this.getData = this.getData.bind(this)
     
-    // Set store based on query parameters
-    this.props.fetchParams.start = props.start != undefined ? props.start : "0"
-    this.props.fetchParams.length = props.length != undefined ? props.length : "5"
+    this.state.start = ''
+    this.state.length = ''
+    this.state.fetchForm = { start: '', length: '' }
+    this.state.fetchData = { values: [] }
+    
   }
   go(event) {
+    console.log('go')
     event.preventDefault()
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
-    this.getData(start, length)
+    const start = this.state.fetchForm.start
+    const length = this.state.fetchForm.length
+    route(this.props.main.baseUrl + "/home/?start="+start+"&length="+length)
   }
   updateFetchParams(event) {
-    let fetchParams = _.cloneDeep(store.getState().fetchParams)
-    fetchParams[event.target.name] = event.target.value
-    console.log(fetchParams)
-    store.setState({fetchParams})
+    console.log('updateFetchParams')
+    let fetchForm = _.cloneDeep(this.state.fetchForm)
+    fetchForm[event.target.name] = event.target.value
+    this.setState({fetchForm})
   }
   async getData(start, length) {
+    console.log('getData')
     const response = await fetch(this.props.main.baseUrl + "/data.php?start="+start+"&length="+length, {
       method: 'GET',
       credentials: 'same-origin',
@@ -109,27 +114,50 @@ class Home extends Component {
     
     const body = await response.json()
     
-    let fetchData = _.cloneDeep(store.getState().fetchData)
+    let fetchData = Object.assign({}, this.state.fetchData)
     fetchData.values = body
     
-    store.setState({fetchData})
+    this.setState({fetchData})
+  }
+  static getDerivedStateFromProps(props) {
+    console.log('getDerivedStateFromProps')
+    return {
+      start: props.start || '0',
+      length: props.length || '5'
+    };
+  }
+  componentDidUpdate(prevProps, prevState) {
+    console.log('componentDidUpdate')
+    const { start, length } = this.state; // new values
+    
+    // When route() is called, if the parameters have changed let's remount.
+    const queryParamsChanged = !_.isEqual(
+      {start: prevState.start, length: prevState.length}, 
+      {start: this.state.start, length: this.state.length}
+    )
+    
+    if (queryParamsChanged) {
+      // Query params have changed, so treat it like we just mounted.
+      this.componentDidMount()
+    }
   }
   componentDidMount() {
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
+    console.log('componentDidMount')
+    const start = this.state.start
+    const length = this.state.length
+    let fetchForm = _.cloneDeep(this.state.fetchForm)
+    fetchForm.start = start
+    fetchForm.length = length
+    this.setState({fetchForm})
     this.getData(start, length)
   }
-  render() {
-    
-    const start = this.props.fetchParams.start
-    const length = this.props.fetchParams.length
-    
-    const data = html`<div>${this.props.fetchData.values.join(' ')}</div>`
-    
+  render(props, state) {
+    console.log('render')
+    const { start, length } = this.state.fetchForm
+    const data = html`<div>${state.fetchData.values.join(' ')}</div>`
     return html`
         <div>
           <h2>Home</h2>
-          
           Start <input type='text' name='start' value=${start} onkeyup=${this.updateFetchParams} />
           Length <input type='text' name='length' value=${length} onkeyup=${this.updateFetchParams} />
           <button onclick=${this.go}>Go</button>
@@ -139,19 +167,19 @@ class Home extends Component {
       `
   }
   static connect() {
-    return connect(
-      "main,fetchParams,fetchData",
-      actions
-    )(
-      ({ main, fetchParams, fetchData }) => {
+      console.log('connect')
+      return connect(
+        "main",
+        actions
+      )(
+      ({ main }) => {
         // Router must be wrapped here extra, otherwise props.start and props.length
         // will not be set from the URL query parameters.
+        console.log('connect.render')
         return html`
           <${Router}>
             <${Home}
               main=${main}
-              fetchParams=${fetchParams}
-              fetchData=${fetchData}
               path=${main.baseUrl + "/home"}
             />
           <//>
